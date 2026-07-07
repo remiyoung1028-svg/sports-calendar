@@ -1,0 +1,9 @@
+# 金鑰檔絕對不要上傳（金鑰改放 GitHub Actions Secrets）
+.env
+
+# 相依套件（本專案零依賴，通常不會有）
+node_modules/
+
+# 系統雜檔
+.DS_Store
+*.log
