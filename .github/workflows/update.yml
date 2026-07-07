@@ -1,0 +1,38 @@
+# 每隔一段時間自動重新產生 .ics 並提交回 repo。
+# iPhone 訂閱 dist/*.ics 的 raw 網址後，就會跟著自動更新——不需要任何伺服器、$0。
+#
+# 設定一次：
+#   GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+#   加入 FOOTBALL_DATA_TOKEN 與 BALLDONTLIE_KEY（沒有就跳過，免金鑰的賽事照樣更新）。
+name: Update calendars
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'   # 每 12 小時（UTC）跑一次
+  workflow_dispatch:          # 也可以在 Actions 頁面手動按一下就更新
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write         # 允許把更新後的 dist/ 提交回 repo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate .ics
+        run: node generate.js
+        env:
+          FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN }}
+          BALLDONTLIE_KEY: ${{ secrets.BALLDONTLIE_KEY }}
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dist
+          git diff --quiet --cached || git commit -m "chore: refresh calendars"
+          git push
