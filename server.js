@@ -199,7 +199,7 @@ async function fetchF1() {
       .filter(Boolean).join(', ');
     events.push({
       uid: makeUid('f1', `${race.season}-${race.round}-${suffix}`),
-      summary: `🏎️ F1 ${race.raceName} — ${label}`,
+      summary: `🏎️ F1 ${race.raceName.replace('Grand Prix', 'GP')} — ${label}`,
       startUTC: start,
       endUTC: end,
       allDay: false,
@@ -299,8 +299,8 @@ async function fetchNBA() {
     const data = await res.json();
 
     for (const g of data.data || []) {
-      const home = g.home_team?.full_name || 'Home';
-      const away = g.visitor_team?.full_name || 'Away';
+      const home = g.home_team?.abbreviation || g.home_team?.full_name || 'Home';
+      const away = g.visitor_team?.abbreviation || g.visitor_team?.full_name || 'Away';
       // datetime 有明確開賽時間就用（UTC），否則退成全天事件
       if (g.datetime) {
         const start = new Date(g.datetime);
@@ -343,6 +343,7 @@ async function fetchMLB() {
     startDate,
     endDate,
     gameType: 'R,F,D,L,W', // 例行賽 + 季後賽（排除熱身賽）
+    hydrate: 'team',       // 取得隊伍縮寫（LAD…）
   });
   const res = await fetch(`https://statsapi.mlb.com/api/v1/schedule?${params.toString()}`, {
     headers: { 'User-Agent': 'sports-calendar' },
@@ -355,8 +356,8 @@ async function fetchMLB() {
       const start = new Date(g.gameDate);
       if (isNaN(start)) continue;
       const end = new Date(start.getTime() + 180 * 60000); // 約 3 小時
-      const away = g.teams?.away?.team?.name || 'Away';
-      const home = g.teams?.home?.team?.name || 'Home';
+      const away = g.teams?.away?.team?.abbreviation || g.teams?.away?.team?.name || 'Away';
+      const home = g.teams?.home?.team?.abbreviation || g.teams?.home?.team?.name || 'Home';
       events.push({
         uid: makeUid('mlb', g.gamePk),
         summary: `⚾️ ${away} @ ${home}`,
@@ -379,7 +380,7 @@ function fetchBWF() {
     const endEx = new Date(Date.UTC(ey, em - 1, ed + 1)); // 全天事件 DTEND 為排除制
     return {
       uid: makeUid('bwf', `${t.name}-${t.start.join('')}`.replace(/\s+/g, '')),
-      summary: `🏸 ${t.name}（${t.level}）`,
+      summary: `🏸 ${t.name}`,
       allDay: true,
       startYMD: t.start,
       endYMDExclusive: [endEx.getUTCFullYear(), endEx.getUTCMonth() + 1, endEx.getUTCDate()],
